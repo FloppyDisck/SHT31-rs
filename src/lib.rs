@@ -32,6 +32,7 @@ const CONVERSION_DENOM: f32 = 65535f32;
 const CELSIUS_PAIR: (f32, f32) = (45f32, 175f32);
 const FAHRENHEIT_PAIR: (f32, f32) = (49f32, 315f32);
 
+/// The temperature and humidity sensor
 pub struct SHT31<Mode, I2C> {
     mode: Mode,
     i2c: I2C,
@@ -40,18 +41,21 @@ pub struct SHT31<Mode, I2C> {
     unit: TemperatureUnit,
 }
 
+/// Represents the reading gotten from the sensor
 #[derive(Clone, Copy, Debug)]
 pub struct Reading {
     pub temperature: f32,
     pub humidity: f32,
 }
 
+/// The two supported I2C addresses
 #[allow(dead_code)]
 pub enum DeviceAddr {
     AD0 = 0x44,
     AD1 = 0x45,
 }
 
+/// Influences what the reading temperature numbers are
 #[allow(dead_code)]
 pub enum TemperatureUnit {
     Celsius,
@@ -109,6 +113,7 @@ impl<I2C> SHT31<SimpleSingleShot, I2C>
     where
         I2C: i2c::WriteRead + i2c::Write,
 {
+    /// Create a new sensor
     pub fn new(i2c: I2C) -> Self {
         Self {
             mode: SimpleSingleShot::new(),
@@ -125,6 +130,7 @@ impl<Mode, I2C> SHT31<Mode, I2C>
     where
         I2C: i2c::WriteRead + i2c::Write,
 {
+    /// Changes the SHT31 mode
     pub fn with_mode<NewMode>(mut self, mode: NewMode) -> SHT31<NewMode, I2C> {
         SHT31 {
             mode,
@@ -135,24 +141,29 @@ impl<Mode, I2C> SHT31<Mode, I2C>
         }
     }
 
+    /// Change the sensor's temperature unit
     pub fn set_unit(&mut self, unit: TemperatureUnit) {
         self.unit = unit;
     }
 
+    /// Change the sensor's temperature unit
     pub fn with_unit(mut self, unit: TemperatureUnit) -> Self {
         self.unit = unit;
         self
     }
 
+    /// Change the sensor's accuracy which also influences how long it takes to read
     pub fn set_accuracy(&mut self, accuracy: Accuracy) {
         self.accuracy = accuracy;
     }
 
+    /// Change the sensor's accuracy which also influences how long it takes to read
     pub fn with_accuracy(mut self, accuracy: Accuracy) -> Self {
         self.accuracy = accuracy;
         self
     }
 
+    /// Change the sensor's I2C address
     pub fn with_address(mut self, address: DeviceAddr) -> Self {
         self.address = address as u8;
         self

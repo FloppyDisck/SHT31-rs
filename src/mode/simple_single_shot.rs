@@ -38,7 +38,7 @@ impl<I2C> Sht31Reader for SHT31<SimpleSingleShot, I2C>
     where
         I2C: i2c::WriteRead + i2c::Write,
 {
-    /// Try reading
+    /// It will initiate a read and wont stop until its either exhausted its retries or a reading is found
     fn read(&mut self) -> Result<Reading> {
         // Commence reading
         let lsb = match self.accuracy {

@@ -26,7 +26,7 @@ impl<I2C> Sht31Reader for SHT31<SingleShot, I2C>
     where
         I2C: i2c::WriteRead + i2c::Write,
 {
-    /// Try reading
+    /// Try reading, if the reading is not available yet then it will error
     fn read(&mut self) -> Result<Reading> {
         single_shot_read(self)
     }
