@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::mode::Sht31Reader;
+use crate::mode::{Sht31Measure, Sht31Reader};
 use crate::Reading;
 use crate::{Accuracy, SHT31};
 use embedded_hal::blocking::i2c;
@@ -33,13 +33,13 @@ impl<I2C> Sht31Reader for SHT31<SingleShot, I2C>
     }
 }
 
-impl<I2C> SHT31<SingleShot, I2C>
+impl<I2C> Sht31Measure for SHT31<SingleShot, I2C>
     where
         I2C: i2c::WriteRead + i2c::Write,
 {
     /// Commence measuring
     #[allow(dead_code)]
-    pub fn measure(&mut self) -> Result<()> {
+    fn measure(&mut self) -> Result<()> {
         let lsb = match self.accuracy {
             Accuracy::High => 0x00,
             Accuracy::Medium => 0x0B,
