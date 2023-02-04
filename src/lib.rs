@@ -33,6 +33,7 @@ const CELSIUS_PAIR: (f32, f32) = (45f32, 175f32);
 const FAHRENHEIT_PAIR: (f32, f32) = (49f32, 315f32);
 
 /// The temperature and humidity sensor
+#[derive(Copy, Clone, Debug)]
 pub struct SHT31<Mode, I2C> {
     mode: Mode,
     i2c: I2C,
@@ -42,7 +43,7 @@ pub struct SHT31<Mode, I2C> {
 }
 
 /// Represents the reading gotten from the sensor
-#[derive(Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct Reading {
     pub temperature: f32,
     pub humidity: f32,
@@ -50,16 +51,31 @@ pub struct Reading {
 
 /// The two supported I2C addresses
 #[allow(dead_code)]
+#[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DeviceAddr {
+    #[default]
     AD0 = 0x44,
     AD1 = 0x45,
 }
 
 /// Influences what the reading temperature numbers are
 #[allow(dead_code)]
+#[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TemperatureUnit {
     Celsius,
+    #[default]
     Fahrenheit,
+}
+
+/// Determines the accuracy of the sensor, the higher the repeatability
+/// the longer it'll take and the more accurate it will be
+#[allow(dead_code)]
+#[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub enum Accuracy {
+    #[default]
+    High,
+    Medium,
+    Low,
 }
 
 fn merge_bytes(a: u8, b: u8) -> u16 {
@@ -114,13 +130,14 @@ impl<I2C> SHT31<SimpleSingleShot, I2C>
         I2C: i2c::WriteRead + i2c::Write,
 {
     /// Create a new sensor
+    /// I2C clock frequency must must be between 0 and 1000 kHz
     pub fn new(i2c: I2C) -> Self {
         Self {
             mode: SimpleSingleShot::new(),
             i2c,
-            address: DeviceAddr::AD0 as u8,
-            unit: TemperatureUnit::Celsius,
-            accuracy: Accuracy::High,
+            address: DeviceAddr::default() as u8,
+            unit: TemperatureUnit::default(),
+            accuracy: Accuracy::default(),
         }
     }
 }
@@ -223,15 +240,6 @@ impl<Mode, I2C> SHT31<Mode, I2C>
             humidity,
         })
     }
-}
-
-/// Determines the accuracy of the sensor, the higher the repeatability
-/// the longer it'll take and the more accurate it will be
-#[allow(dead_code)]
-pub enum Accuracy {
-    High,
-    Medium,
-    Low,
 }
 
 #[cfg(test)]

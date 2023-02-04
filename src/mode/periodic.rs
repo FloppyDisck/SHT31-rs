@@ -1,9 +1,15 @@
 /// Periodic reading where reading returns the last available data
-pub struct Periodic {}
+#[derive(Default, Copy, Clone, Debug)]
+pub struct Periodic {
+    mps: MPS
+}
 
+/// Stands for measurements per second
 #[allow(dead_code)]
+#[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum MPS {
     Half = 0x20,
+    #[default]
     Normal = 0x21,
     Double = 0x22,
     X4 = 0x23,

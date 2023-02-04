@@ -5,6 +5,7 @@ use crate::{Accuracy, SHT31};
 use embedded_hal::blocking::i2c;
 
 /// Complex read that may require multiple attempts to read output until its ready
+#[derive(Default, Copy, Clone, Debug)]
 pub struct SingleShot {}
 
 impl SingleShot {
@@ -26,7 +27,7 @@ impl<I2C> Sht31Reader for SHT31<SingleShot, I2C>
     where
         I2C: i2c::WriteRead + i2c::Write,
 {
-    /// Try reading, if the reading is not available yet then it will error
+    /// Try reading, if the reading is not available yet then it will return an error
     fn read(&mut self) -> Result<Reading> {
         single_shot_read(self)
     }

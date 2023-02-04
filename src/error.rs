@@ -2,7 +2,7 @@ use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, SHTError>;
 
-#[derive(Error, Debug)]
+#[derive(Error, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum SHTError {
     #[error("Write Read I2C Error")]
     WriteReadI2CError,

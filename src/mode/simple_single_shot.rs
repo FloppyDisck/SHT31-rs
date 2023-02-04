@@ -8,9 +8,16 @@ use crate::error::SHTError::PlaceholderError;
 use crate::mode::single_shot::single_shot_read;
 
 /// A simple reading that blocks until the measurement is obtained
+#[derive(Copy, Clone, Debug)]
 pub struct SimpleSingleShot {
     max_retries: u8,
     ms_delay: u64
+}
+
+impl Default for SimpleSingleShot {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SimpleSingleShot {
