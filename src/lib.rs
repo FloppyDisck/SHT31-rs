@@ -131,7 +131,7 @@ impl<Mode, I2C> SHT31<Mode, I2C>
         I2C: i2c::WriteRead + i2c::Write,
 {
     /// Changes the SHT31 mode
-    pub fn with_mode<NewMode>(mut self, mode: NewMode) -> SHT31<NewMode, I2C> {
+    pub fn with_mode<NewMode>(self, mode: NewMode) -> SHT31<NewMode, I2C> {
         SHT31 {
             mode,
             i2c: self.i2c,
