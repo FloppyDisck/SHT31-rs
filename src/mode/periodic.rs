@@ -1,14 +1,15 @@
+use crate::{
+    error::Result,
+    mode::{Sht31Measure, Sht31Reader},
+    Accuracy, Reading, SHT31,
+};
 use embedded_hal::blocking::i2c;
-use crate::mode::Sht31Measure;
-use crate::error::Result;
-use crate::{Accuracy, Reading, SHT31};
-use crate::prelude::Sht31Reader;
 
 /// Periodic reading where reading returns the last available data
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Periodic {
     mps: MPS,
-    art: bool
+    art: bool,
 }
 
 /// Stands for measurements per second
@@ -28,7 +29,7 @@ impl Periodic {
     pub fn new() -> Self {
         Self {
             mps: MPS::Normal,
-            art: false
+            art: false,
         }
     }
 
@@ -53,8 +54,8 @@ impl Periodic {
 }
 
 impl<I2C> Sht31Reader for SHT31<Periodic, I2C>
-    where
-        I2C: i2c::WriteRead + i2c::Write,
+where
+    I2C: i2c::WriteRead + i2c::Write,
 {
     fn read(&mut self) -> Result<Reading> {
         let mut buffer = [0; 6];
@@ -65,8 +66,8 @@ impl<I2C> Sht31Reader for SHT31<Periodic, I2C>
 }
 
 impl<I2C> Sht31Measure for SHT31<Periodic, I2C>
-    where
-        I2C: i2c::WriteRead + i2c::Write,
+where
+    I2C: i2c::WriteRead + i2c::Write,
 {
     /// Initialized the periodic measuring mode,
     /// a break command must be run in order to change
@@ -74,44 +75,33 @@ impl<I2C> Sht31Measure for SHT31<Periodic, I2C>
     fn measure(&mut self) -> Result<()> {
         let (msb, lsb) = if self.mode.art {
             (0x2B, 0x32)
-        }
-        else {
+        } else {
             let lsb = match self.mode.mps {
-                MPS::Half => {
-                    match self.accuracy {
-                        Accuracy::High => 0x32,
-                        Accuracy::Medium => 0x24,
-                        Accuracy::Low => 0x2F
-                    }
-                }
-                MPS::Normal => {
-                    match self.accuracy {
-                        Accuracy::High => 0x30,
-                        Accuracy::Medium => 0x26,
-                        Accuracy::Low => 0x2D
-                    }
-                }
-                MPS::Double => {
-                    match self.accuracy {
-                        Accuracy::High => 0x36,
-                        Accuracy::Medium => 0x20,
-                        Accuracy::Low => 0x2B
-                    }
-                }
-                MPS::X4 => {
-                    match self.accuracy {
-                        Accuracy::High => 0x34,
-                        Accuracy::Medium => 0x22,
-                        Accuracy::Low => 0x29
-                    }
-                }
-                MPS::X10 => {
-                    match self.accuracy {
-                        Accuracy::High => 0x37,
-                        Accuracy::Medium => 0x21,
-                        Accuracy::Low => 0x2A
-                    }
-                }
+                MPS::Half => match self.accuracy {
+                    Accuracy::High => 0x32,
+                    Accuracy::Medium => 0x24,
+                    Accuracy::Low => 0x2F,
+                },
+                MPS::Normal => match self.accuracy {
+                    Accuracy::High => 0x30,
+                    Accuracy::Medium => 0x26,
+                    Accuracy::Low => 0x2D,
+                },
+                MPS::Double => match self.accuracy {
+                    Accuracy::High => 0x36,
+                    Accuracy::Medium => 0x20,
+                    Accuracy::Low => 0x2B,
+                },
+                MPS::X4 => match self.accuracy {
+                    Accuracy::High => 0x34,
+                    Accuracy::Medium => 0x22,
+                    Accuracy::Low => 0x29,
+                },
+                MPS::X10 => match self.accuracy {
+                    Accuracy::High => 0x37,
+                    Accuracy::Medium => 0x21,
+                    Accuracy::Low => 0x2A,
+                },
             };
             (self.mode.mps as u8, lsb)
         };

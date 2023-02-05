@@ -1,5 +1,11 @@
-# SHT31-rs
+# SHT31-rs &emsp; [![Latest Version]][crates.io]
+
+[Latest Version]: https://img.shields.io/crates/v/serde.svg
+[crates.io]: https://crates.io/crates/sht31
+
 A cargo library for the SHT31 temperature / humidity sensors
+
+---
 
 ## Usage
 The default sensor usage includes a blocking sensor read that blocks 
@@ -16,6 +22,8 @@ fn main() -> Result<()> {
     }
 }
 ```
+
+---
 
 ## Advanced Single Shot Usage
 Breaks down the simple usage into two commands, one where 
@@ -47,6 +55,8 @@ fn main() -> Result<()> {
 }
 ```
 
+---
+
 ## Periodic Usage
 Periodic mode continually reads data at a rate of the 
 given measurements per second (MPS) and at a quality 
@@ -74,6 +84,8 @@ fn main() -> Result<()> {
 }
 ```
 
+---
+
 ## Periodic with Accelerated Response Time
 Periodic mode has a unique mode that allows the sensor to read data at 4Hz
 ```rust
@@ -91,6 +103,8 @@ fn main() -> Result<()> {
     }
 }
 ```
+
+---
 
 ## Mode switching
 This crate also supports more complex case scenarios where you might want to switch 

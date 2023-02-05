@@ -1,17 +1,15 @@
 pub mod error;
 pub mod mode;
 
+use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
 use embedded_hal::blocking::i2c;
-use error::{Result, SHTError};
-use std::fmt::Debug;
-use crate::error::SHTError::InvalidStatusChecksumError;
-use crate::mode::SimpleSingleShot;
 
+pub use crate::error::{Result, SHTError};
 pub mod prelude {
     pub use super::{
-        mode::Periodic, mode::Sht31Reader, mode::SingleShot, mode::MPS, Accuracy, DeviceAddr,
-        Reading, TemperatureUnit, SHT31,
+        mode::{Periodic, Sht31Measure, Sht31Reader, SimpleSingleShot, SingleShot, MPS},
+        Accuracy, DeviceAddr, Reading, Status, TemperatureUnit, SHT31,
     };
 }
 
@@ -95,11 +93,11 @@ pub struct Status {
     /// Heater status
     pub heater_on: bool,
     /// At least one pending alert
-    pub pending_alert: bool
+    pub pending_alert: bool,
 }
 
 fn bit_flag(n: u16, pos: u8) -> bool {
-    n & (1<<pos) != 0
+    n & (1 << pos) != 0
 }
 
 impl Status {
@@ -166,8 +164,8 @@ impl<Mode, I2C> SHT31<Mode, I2C> {
 
 #[allow(dead_code)]
 impl<I2C> SHT31<SimpleSingleShot, I2C>
-    where
-        I2C: i2c::WriteRead + i2c::Write,
+where
+    I2C: i2c::WriteRead + i2c::Write,
 {
     /// Create a new sensor
     /// I2C clock frequency must must be between 0 and 1000 kHz
@@ -185,8 +183,8 @@ impl<I2C> SHT31<SimpleSingleShot, I2C>
 
 #[allow(dead_code)]
 impl<Mode, I2C> SHT31<Mode, I2C>
-    where
-        I2C: i2c::WriteRead + i2c::Write,
+where
+    I2C: i2c::WriteRead + i2c::Write,
 {
     /// Changes the SHT31 mode
     pub fn with_mode<NewMode>(self, mode: NewMode) -> SHT31<NewMode, I2C> {
@@ -247,12 +245,7 @@ impl<Mode, I2C> SHT31<Mode, I2C>
 
     /// Switch the heater on or off
     fn switch_heater(&mut self) -> Result<()> {
-        let lsb = if self.heater {
-            0x6D
-        }
-        else {
-            0x66
-        };
+        let lsb = if self.heater { 0x6D } else { 0x66 };
 
         self.i2c_write(&[0x30, lsb])
     }
@@ -283,12 +276,12 @@ impl<Mode, I2C> SHT31<Mode, I2C>
         // Verify data
         let calculated = calculate_checksum(&Crc::<u8>::new(&CRC_ALGORITHM), buffer[0], buffer[1]);
         if calculated != buffer[2] {
-            return Err(InvalidStatusChecksumError {
+            return Err(SHTError::InvalidStatusChecksumError {
                 bytes_start: buffer[0],
                 bytes_end: buffer[1],
                 expected_checksum: buffer[2],
                 calculated_checksum: calculated,
-            })
+            });
         }
 
         Ok(Status::from_bytes(merge_bytes(buffer[0], buffer[1])))
@@ -371,14 +364,17 @@ mod test {
         let corrupt_temperature = [98, 153, 180, 98, 32, 139];
 
         assert_eq!(
-            verify_reading(corrupt_temperature).err().unwrap().to_string(),
+            verify_reading(corrupt_temperature)
+                .err()
+                .unwrap()
+                .to_string(),
             SHTError::InvalidTemperatureChecksumError {
                 bytes_start: 98,
                 bytes_end: 153,
                 expected_checksum: 180,
                 calculated_checksum: 188
             }
-                .to_string()
+            .to_string()
         );
 
         let corrupt_humidity = [98, 153, 188, 98, 32, 180];
@@ -390,7 +386,7 @@ mod test {
                 expected_checksum: 180,
                 calculated_checksum: 139
             }
-                .to_string()
+            .to_string()
         );
     }
 
