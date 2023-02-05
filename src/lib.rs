@@ -147,7 +147,7 @@ fn verify_reading(buffer: [u8; 6]) -> Result<()> {
         });
     }
 
-    return Ok(());
+    Ok(())
 }
 
 impl<Mode, I2C> SHT31<Mode, I2C> {

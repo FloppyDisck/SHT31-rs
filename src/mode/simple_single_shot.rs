@@ -74,6 +74,6 @@ where
                 return read_attempt;
             }
         }
-        return read_attempt;
+        read_attempt
     }
 }
