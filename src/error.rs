@@ -22,6 +22,13 @@ pub enum SHTError {
         expected_checksum: u8,
         calculated_checksum: u8,
     },
+    #[error("Status bytes [{bytes_start:#x}, {bytes_end:#x}] expected {expected_checksum:#x} but got the checksum {calculated_checksum:#x}")]
+    InvalidStatusChecksumError {
+        bytes_start: u8,
+        bytes_end: u8,
+        expected_checksum: u8,
+        calculated_checksum: u8,
+    },
     #[error("Single shot reading timeout")]
     ReadingTimeoutError,
     #[error("This error should not happen")]
