@@ -2,7 +2,7 @@ use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, SHTError>;
 
-#[derive(Error, Debug)]
+#[derive(Error, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum SHTError {
     #[error("Write Read I2C Error")]
     WriteReadI2CError,
@@ -17,6 +17,13 @@ pub enum SHTError {
     },
     #[error("Temperature bytes [{bytes_start:#x}, {bytes_end:#x}] expected {expected_checksum:#x} but got the checksum {calculated_checksum:#x}")]
     InvalidTemperatureChecksumError {
+        bytes_start: u8,
+        bytes_end: u8,
+        expected_checksum: u8,
+        calculated_checksum: u8,
+    },
+    #[error("Status bytes [{bytes_start:#x}, {bytes_end:#x}] expected {expected_checksum:#x} but got the checksum {calculated_checksum:#x}")]
+    InvalidStatusChecksumError {
         bytes_start: u8,
         bytes_end: u8,
         expected_checksum: u8,

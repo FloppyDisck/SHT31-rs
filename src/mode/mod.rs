@@ -12,3 +12,8 @@ pub trait Sht31Reader {
     /// Read the sensor readings
     fn read(&mut self) -> Result<Reading>;
 }
+
+pub trait Sht31Measure {
+    /// Initialize reading
+    fn measure(&mut self) -> Result<()>;
+}
