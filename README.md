@@ -1,6 +1,6 @@
 # SHT31-rs &emsp; [![Latest Version]][crates.io]
 
-[Latest Version]: https://img.shields.io/crates/v/serde.svg
+[Latest Version]: https://img.shields.io/crates/v/sht31.svg
 [crates.io]: https://crates.io/crates/sht31
 
 A cargo library for the SHT31 temperature / humidity sensors
