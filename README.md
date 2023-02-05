@@ -1,5 +1,7 @@
-# SHT31-rs &emsp; [![Latest Version]][crates.io]
+# SHT31-rs &emsp; [![Build Status]][actions] [![Latest Version]][crates.io]
 
+[Build Status]: https://img.shields.io/github/actions/workflow/status/FloppyDisck/SHT31-rs/rust.yml?branch=main
+[actions]: https://github.com/FloppyDisck/SHT31-rs/actions?query=branch%3Amain
 [Latest Version]: https://img.shields.io/crates/v/sht31.svg
 [crates.io]: https://crates.io/crates/sht31
 
