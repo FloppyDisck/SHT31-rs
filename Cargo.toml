@@ -17,5 +17,4 @@ embedded-svc            = "0.22.0"
 embedded-hal            = "0.2.7"
 
 crc = "3.0.0"
-anyhow = "1"
 thiserror = "1.0.38"
