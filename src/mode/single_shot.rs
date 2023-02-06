@@ -10,7 +10,6 @@ use embedded_hal::blocking::i2c;
 pub struct SingleShot {}
 
 impl SingleShot {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {}
     }
@@ -41,7 +40,6 @@ where
     I2C: i2c::WriteRead + i2c::Write,
 {
     /// Commence measuring
-    #[allow(dead_code)]
     fn measure(&mut self) -> Result<()> {
         let lsb = match self.accuracy {
             Accuracy::High => 0x00,

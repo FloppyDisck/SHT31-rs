@@ -20,7 +20,6 @@ impl Default for SimpleSingleShot {
 }
 
 impl SimpleSingleShot {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             max_retries: 8,

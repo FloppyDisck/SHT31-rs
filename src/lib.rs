@@ -50,7 +50,6 @@ pub struct Reading {
 }
 
 /// The two supported I2C addresses
-#[allow(dead_code)]
 #[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DeviceAddr {
     #[default]
@@ -59,7 +58,6 @@ pub enum DeviceAddr {
 }
 
 /// Influences what the reading temperature numbers are
-#[allow(dead_code)]
 #[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TemperatureUnit {
     Celsius,
@@ -69,7 +67,6 @@ pub enum TemperatureUnit {
 
 /// Determines the accuracy of the sensor, the higher the repeatability
 /// the longer it'll take and the more accurate it will be
-#[allow(dead_code)]
 #[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Accuracy {
     #[default]
@@ -162,7 +159,6 @@ impl<Mode, I2C> SHT31<Mode, I2C> {
     }
 }
 
-#[allow(dead_code)]
 impl<I2C> SHT31<SimpleSingleShot, I2C>
 where
     I2C: i2c::WriteRead + i2c::Write,
@@ -181,7 +177,6 @@ where
     }
 }
 
-#[allow(dead_code)]
 impl<Mode, I2C> SHT31<Mode, I2C>
 where
     I2C: i2c::WriteRead + i2c::Write,

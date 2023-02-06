@@ -13,7 +13,6 @@ pub struct Periodic {
 }
 
 /// Stands for measurements per second
-#[allow(dead_code)]
 #[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum MPS {
     Half = 0x20,
@@ -25,7 +24,6 @@ pub enum MPS {
 }
 
 impl Periodic {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             mps: MPS::Normal,
