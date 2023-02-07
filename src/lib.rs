@@ -24,12 +24,25 @@ const CRC_ALGORITHM: Algorithm<u8> = Algorithm {
     residue: 0x00,
 };
 
-// 2**16 - 1
-const CONVERSION_DENOM: f32 = 65535f32;
+#[cfg(not(feature = "no-float"))]
+mod sensor_math {
+    // 2**16 - 1
+    pub(crate) const CONVERSION_DENOM: f32 = 65535f32;
+    pub(crate) const HUNDRED: f32 = 100f32;
 
-// Constants used to convert values
-const CELSIUS_PAIR: (f32, f32) = (45f32, 175f32);
-const FAHRENHEIT_PAIR: (f32, f32) = (49f32, 315f32);
+    // Constants used to convert values
+    pub(crate) const CELSIUS_PAIR: (f32, f32) = (45f32, 175f32);
+    pub(crate) const FAHRENHEIT_PAIR: (f32, f32) = (49f32, 315f32);
+}
+#[cfg(feature = "no-float")]
+mod sensor_math {
+    pub(crate) const CONVERSION_DENOM: i32 = 65535;
+    pub(crate) const HUNDRED: i32 = 100;
+
+    // Constants used to convert values
+    pub(crate) const CELSIUS_PAIR: (i32, i32) = (45, 175);
+    pub(crate) const FAHRENHEIT_PAIR: (i32, i32) = (49, 315);
+}
 
 /// The temperature and humidity sensor
 #[derive(Copy, Clone, Debug)]
@@ -42,11 +55,19 @@ pub struct SHT31<Mode, I2C> {
     heater: bool,
 }
 
-/// Represents the reading gotten from the sensor
+/// Represents the sensor reading
+#[cfg(not(feature = "no-float"))]
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Reading {
     pub temperature: f32,
     pub humidity: f32,
+}
+
+#[cfg(feature = "no-float")]
+#[derive(Default, Clone, Copy, Debug)]
+pub struct Reading {
+    pub temperature: i32,
+    pub humidity: i32,
 }
 
 /// The two supported I2C addresses
@@ -304,23 +325,26 @@ where
     fn process_data(&self, buffer: [u8; 6]) -> Result<Reading> {
         Self::verify_data(buffer)?;
 
+        #[cfg(not(feature = "no-float"))]
         let raw_temp = Self::merge_bytes(buffer[0], buffer[1]) as f32;
+        #[cfg(feature = "no-float")]
+        let raw_temp = Self::merge_bytes(buffer[0], buffer[1]) as i32;
 
         let (sub, mul) = match self.unit {
             TemperatureUnit::Celsius => {
                 // TODO: figure out why this is necessary
                 #[cfg(feature = "esp32-fix")]
                 println!();
-                CELSIUS_PAIR
+                sensor_math::CELSIUS_PAIR
             }
             TemperatureUnit::Fahrenheit => {
                 #[cfg(feature = "esp32-fix")]
                 println!();
-                FAHRENHEIT_PAIR
+                sensor_math::FAHRENHEIT_PAIR
             }
         };
 
-        let pre_sub = mul * (raw_temp / CONVERSION_DENOM);
+        let pre_sub = (mul * raw_temp) / sensor_math::CONVERSION_DENOM;
 
         // This needs to be printed, if not temperature = - temperature
         // i swear to god im not making this up
@@ -329,8 +353,11 @@ where
 
         let temperature = pre_sub - sub;
 
+        #[cfg(not(feature = "no-float"))]
         let raw_humidity = Self::merge_bytes(buffer[3], buffer[4]) as f32;
-        let humidity = 100f32 * raw_humidity / CONVERSION_DENOM;
+        #[cfg(feature = "no-float")]
+        let raw_humidity = Self::merge_bytes(buffer[3], buffer[4]) as i32;
+        let humidity = sensor_math::HUNDRED * raw_humidity / sensor_math::CONVERSION_DENOM;
 
         Ok(Reading {
             temperature,
@@ -342,6 +369,9 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::prelude::*;
+    use embedded_hal_mock::i2c::{Mock, Transaction};
+    use rstest::*;
 
     #[test]
     fn byte_merge() {
@@ -357,7 +387,6 @@ mod test {
         assert!(verify_reading(buffer).is_ok());
 
         let corrupt_temperature = [98, 153, 180, 98, 32, 139];
-
         assert_eq!(
             verify_reading(corrupt_temperature)
                 .err()
@@ -395,5 +424,212 @@ mod test {
         assert_eq!(status.system_reset, true);
         assert_eq!(status.last_command_processed, true);
         assert_eq!(status.checksum_failed, false);
+    }
+
+    fn single_shot_expectations(msb: u8, lsb: u8) -> [Transaction; 2] {
+        [
+            Transaction::write(DeviceAddr::AD0 as u8, vec![msb, lsb]),
+            Transaction::write_read(
+                DeviceAddr::AD0 as u8,
+                vec![],
+                vec![98, 153, 188, 98, 32, 139],
+            ),
+        ]
+    }
+
+    #[rstest]
+    #[case(0x10, Accuracy::Low)]
+    #[case(0x0D, Accuracy::Medium)]
+    #[case(0x06, Accuracy::High)]
+    #[cfg(not(feature = "no-float"))]
+    fn simple_single_shot(#[case] lsb: u8, #[case] accuracy: Accuracy) {
+        let i2c = Mock::new(&single_shot_expectations(0x2C, lsb));
+
+        let mut sht31 = SHT31::new(i2c).with_accuracy(accuracy);
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38.33066);
+        assert_eq!(reading.temperature, 72.32318);
+    }
+
+    #[rstest]
+    #[case(0x10, Accuracy::Low)]
+    #[case(0x0D, Accuracy::Medium)]
+    #[case(0x06, Accuracy::High)]
+    #[cfg(feature = "no-float")]
+    fn simple_single_shot(#[case] lsb: u8, #[case] accuracy: Accuracy) {
+        let i2c = Mock::new(&single_shot_expectations(0x2C, lsb));
+
+        let mut sht31 = SHT31::new(i2c).with_accuracy(accuracy);
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38);
+        assert_eq!(reading.temperature, 72);
+    }
+
+    #[rstest]
+    #[case(0x16, Accuracy::Low)]
+    #[case(0x0B, Accuracy::Medium)]
+    #[case(0x00, Accuracy::High)]
+    #[cfg(not(feature = "no-float"))]
+    fn single_shot(#[case] lsb: u8, #[case] accuracy: Accuracy) {
+        let i2c = Mock::new(&single_shot_expectations(0x24, lsb));
+
+        let mut sht31 = SHT31::new(i2c)
+            .with_mode(SingleShot::new())
+            .with_accuracy(accuracy);
+        sht31.measure().unwrap();
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38.33066);
+        assert_eq!(reading.temperature, 72.32318);
+    }
+
+    #[rstest]
+    #[case(0x16, Accuracy::Low)]
+    #[case(0x0B, Accuracy::Medium)]
+    #[case(0x00, Accuracy::High)]
+    #[cfg(feature = "no-float")]
+    fn single_shot(#[case] lsb: u8, #[case] accuracy: Accuracy) {
+        let i2c = Mock::new(&single_shot_expectations(0x24, lsb));
+
+        let mut sht31 = SHT31::new(i2c)
+            .with_mode(SingleShot::new())
+            .with_accuracy(accuracy);
+        sht31.measure().unwrap();
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38);
+        assert_eq!(reading.temperature, 72);
+    }
+
+    #[rstest]
+    #[case(0x20, 0x32, false, Accuracy::High, MPS::Half)]
+    #[case(0x20, 0x24, false, Accuracy::Medium, MPS::Half)]
+    #[case(0x20, 0x2F, false, Accuracy::Low, MPS::Half)]
+    #[case(0x21, 0x30, false, Accuracy::High, MPS::Normal)]
+    #[case(0x21, 0x26, false, Accuracy::Medium, MPS::Normal)]
+    #[case(0x21, 0x2D, false, Accuracy::Low, MPS::Normal)]
+    #[case(0x22, 0x36, false, Accuracy::High, MPS::Double)]
+    #[case(0x22, 0x20, false, Accuracy::Medium, MPS::Double)]
+    #[case(0x22, 0x2B, false, Accuracy::Low, MPS::Double)]
+    #[case(0x23, 0x34, false, Accuracy::High, MPS::X4)]
+    #[case(0x23, 0x22, false, Accuracy::Medium, MPS::X4)]
+    #[case(0x23, 0x29, false, Accuracy::Low, MPS::X4)]
+    #[case(0x27, 0x37, false, Accuracy::High, MPS::X10)]
+    #[case(0x27, 0x21, false, Accuracy::Medium, MPS::X10)]
+    #[case(0x27, 0x2A, false, Accuracy::Low, MPS::X10)]
+    #[case(0x2B, 0x32, true, Accuracy::Low, MPS::Half)]
+    #[cfg(not(feature = "no-float"))]
+    fn periodic(
+        #[case] msb: u8,
+        #[case] lsb: u8,
+        #[case] art: bool,
+        #[case] accuracy: Accuracy,
+        #[case] mps: MPS,
+    ) {
+        let expectations = [
+            Transaction::write(DeviceAddr::AD0 as u8, vec![msb, lsb]),
+            Transaction::write_read(
+                DeviceAddr::AD0 as u8,
+                vec![0xE0, 0x00],
+                vec![98, 153, 188, 98, 32, 139],
+            ),
+        ];
+        let i2c = Mock::new(&expectations);
+
+        let mut periodic = Periodic::new().with_mps(mps);
+        if art {
+            periodic.set_art();
+        }
+
+        let mut sht31 = SHT31::new(i2c).with_mode(periodic).with_accuracy(accuracy);
+        sht31.measure().unwrap();
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38.33066);
+        assert_eq!(reading.temperature, 72.32318);
+    }
+
+    #[rstest]
+    #[case(0x20, 0x32, false, Accuracy::High, MPS::Half)]
+    #[case(0x20, 0x24, false, Accuracy::Medium, MPS::Half)]
+    #[case(0x20, 0x2F, false, Accuracy::Low, MPS::Half)]
+    #[case(0x21, 0x30, false, Accuracy::High, MPS::Normal)]
+    #[case(0x21, 0x26, false, Accuracy::Medium, MPS::Normal)]
+    #[case(0x21, 0x2D, false, Accuracy::Low, MPS::Normal)]
+    #[case(0x22, 0x36, false, Accuracy::High, MPS::Double)]
+    #[case(0x22, 0x20, false, Accuracy::Medium, MPS::Double)]
+    #[case(0x22, 0x2B, false, Accuracy::Low, MPS::Double)]
+    #[case(0x23, 0x34, false, Accuracy::High, MPS::X4)]
+    #[case(0x23, 0x22, false, Accuracy::Medium, MPS::X4)]
+    #[case(0x23, 0x29, false, Accuracy::Low, MPS::X4)]
+    #[case(0x27, 0x37, false, Accuracy::High, MPS::X10)]
+    #[case(0x27, 0x21, false, Accuracy::Medium, MPS::X10)]
+    #[case(0x27, 0x2A, false, Accuracy::Low, MPS::X10)]
+    #[case(0x2B, 0x32, true, Accuracy::Low, MPS::Half)]
+    #[cfg(feature = "no-float")]
+    fn periodic(
+        #[case] msb: u8,
+        #[case] lsb: u8,
+        #[case] art: bool,
+        #[case] accuracy: Accuracy,
+        #[case] mps: MPS,
+    ) {
+        let expectations = [
+            Transaction::write(DeviceAddr::AD0 as u8, vec![msb, lsb]),
+            Transaction::write_read(
+                DeviceAddr::AD0 as u8,
+                vec![0xE0, 0x00],
+                vec![98, 153, 188, 98, 32, 139],
+            ),
+        ];
+        let i2c = Mock::new(&expectations);
+
+        let mut periodic = Periodic::new().with_mps(mps);
+        if art {
+            periodic.set_art();
+        }
+
+        let mut sht31 = SHT31::new(i2c).with_mode(periodic).with_accuracy(accuracy);
+        sht31.measure().unwrap();
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38);
+        assert_eq!(reading.temperature, 72);
+    }
+
+    fn extras() {
+        let expectations = [
+            // Heater On
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x6D]),
+            // Heater Off
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x66]),
+            // Break
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x93]),
+            // Soft reset
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0xA2]),
+            // Reset
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x00, 0x06]),
+            // Reset Status
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x41]),
+            // Status
+            Transaction::write_read(
+                DeviceAddr::AD0 as u8,
+                vec![0xF3, 0x2D],
+                vec![98, 153, 188, 98, 32, 139],
+            ),
+        ];
+        let i2c = Mock::new(&expectations);
+
+        // Heating
+        let mut sht31 = SHT31::new(i2c).with_heating().unwrap();
+        sht31.set_heating(false).unwrap();
+
+        // Break
+        sht31.break_command().unwrap();
+
+        // Resets
+        sht31.soft_reset().unwrap();
+        sht31.reset().unwrap();
+
+        // Status
+        sht31.clear_status().unwrap();
+
+        // TODO: status
     }
 }

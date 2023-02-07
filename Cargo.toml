@@ -10,7 +10,9 @@ keywords = ["embedded", "sensor", "temperature", "humidity"]
 categories = ["embedded"]
 
 [features]
+default = []
 esp32-fix = []
+no-float = []
 
 [dependencies]
 embedded-svc            = "0.22.0"
@@ -18,3 +20,7 @@ embedded-hal            = "0.2.7"
 
 crc = "3.0.0"
 thiserror = "1.0.38"
+
+[dev-dependencies]
+embedded-hal-mock = "0.9.0"
+rstest = "0.16.0"
