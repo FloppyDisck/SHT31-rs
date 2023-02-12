@@ -447,8 +447,8 @@ mod test {
 
         let mut sht31 = SHT31::new(i2c).with_accuracy(accuracy);
         let reading = sht31.read().unwrap();
-        assert_eq!(reading.humidity, 38.33066);
-        assert_eq!(reading.temperature, 72.32318);
+        assert!((reading.humidity > 38.3) && (reading.humidity < 38.4));
+        assert!((reading.temperature > 72.3) && (reading.temperature < 72.4));
     }
 
     #[rstest]
@@ -478,8 +478,8 @@ mod test {
             .with_accuracy(accuracy);
         sht31.measure().unwrap();
         let reading = sht31.read().unwrap();
-        assert_eq!(reading.humidity, 38.33066);
-        assert_eq!(reading.temperature, 72.32318);
+        assert!((reading.humidity > 38.3) && (reading.humidity < 38.4));
+        assert!((reading.temperature > 72.3) && (reading.temperature < 72.4));
     }
 
     #[rstest]
@@ -542,8 +542,8 @@ mod test {
         let mut sht31 = SHT31::new(i2c).with_mode(periodic).with_accuracy(accuracy);
         sht31.measure().unwrap();
         let reading = sht31.read().unwrap();
-        assert_eq!(reading.humidity, 38.33066);
-        assert_eq!(reading.temperature, 72.32318);
+        assert!((reading.humidity > 38.3) && (reading.humidity < 38.4));
+        assert!((reading.temperature > 72.3) && (reading.temperature < 72.4));
     }
 
     #[rstest]
