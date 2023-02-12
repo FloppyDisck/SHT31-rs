@@ -13,8 +13,11 @@ categories = ["embedded"]
 default = []
 esp32-fix = []
 no-float = []
+robot-rs = ["dep:robotrs"]
 
 [dependencies]
+robotrs = {path = "../robotrs", optional = true}
+
 embedded-svc            = "0.22.0"
 embedded-hal            = "0.2.7"
 

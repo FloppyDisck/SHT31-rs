@@ -1,6 +1,9 @@
 pub mod error;
 pub mod mode;
 
+#[cfg(feature = "robot-rs")]
+pub mod robot_interface;
+
 use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
 use embedded_hal::blocking::i2c;
