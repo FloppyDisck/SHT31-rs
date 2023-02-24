@@ -88,6 +88,12 @@ pub enum DeviceAddr {
     AD1 = 0x45,
 }
 
+impl Into<u8> for DeviceAddr {
+    fn into(self) -> u8 {
+        self as u8
+    }
+}
+
 /// Influences what the reading temperature numbers are
 #[derive(Default, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TemperatureUnit {
@@ -247,8 +253,8 @@ where
     }
 
     /// Change the sensor's I2C address
-    pub fn with_address(mut self, address: DeviceAddr) -> Self {
-        self.address = address as u8;
+    pub fn with_address(mut self, address: impl Into<u8>) -> Self {
+        self.address = address.into();
         self
     }
 
