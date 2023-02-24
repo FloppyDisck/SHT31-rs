@@ -17,6 +17,7 @@ robot-rs = ["dep:robotrs"]
 
 [dependencies]
 robotrs = {path = "../robotrs", optional = true}
+bevy_ecs = { version = "0.9.1", default-features = false }
 
 embedded-svc            = "0.22.0"
 embedded-hal            = "0.2.7"

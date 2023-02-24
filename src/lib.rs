@@ -3,6 +3,8 @@ pub mod mode;
 
 #[cfg(feature = "robot-rs")]
 pub mod robot_interface;
+#[cfg(feature = "robot-rs")]
+use bevy_ecs::prelude::Component;
 
 use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
@@ -10,11 +12,15 @@ use embedded_hal::blocking::i2c;
 
 pub use crate::error::{Result, SHTError};
 pub mod prelude {
+    #[cfg(feature = "robot-rs")]
+    pub use super::robot_interface::*;
     pub use super::{
         mode::{Periodic, Sht31Measure, Sht31Reader, SimpleSingleShot, SingleShot, MPS},
         Accuracy, DeviceAddr, Reading, Status, TemperatureUnit, SHT31,
     };
 }
+
+//trait OptionalThreading = Send + Sync;
 
 const CRC_ALGORITHM: Algorithm<u8> = Algorithm {
     width: 8,
@@ -48,8 +54,9 @@ mod sensor_math {
 }
 
 /// The temperature and humidity sensor
+#[cfg_attr(feature = "robot-rs", derive(Component))]
 #[derive(Copy, Clone, Debug)]
-pub struct SHT31<Mode, I2C> {
+pub struct SHT31<Mode: 'static + Send + Sync, I2C: 'static + Send + Sync> {
     mode: Mode,
     i2c: I2C,
     address: u8,
@@ -171,7 +178,7 @@ fn verify_reading(buffer: [u8; 6]) -> Result<()> {
     Ok(())
 }
 
-impl<Mode, I2C> SHT31<Mode, I2C> {
+impl<Mode: Send + Sync, I2C: Send + Sync> SHT31<Mode, I2C> {
     /// Merges two bytes so the result is both, ex merge_bytes(0x20, 0x33) = 0x2033
     fn merge_bytes(a: u8, b: u8) -> u16 {
         merge_bytes(a, b)
@@ -185,7 +192,7 @@ impl<Mode, I2C> SHT31<Mode, I2C> {
 
 impl<I2C> SHT31<SimpleSingleShot, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: i2c::WriteRead + i2c::Write + Send + Sync,
 {
     /// Create a new sensor
     /// I2C clock frequency must must be between 0 and 1000 kHz
@@ -201,12 +208,12 @@ where
     }
 }
 
-impl<Mode, I2C> SHT31<Mode, I2C>
+impl<Mode: Send + Sync, I2C> SHT31<Mode, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: i2c::WriteRead + i2c::Write + Send + Sync,
 {
     /// Changes the SHT31 mode
-    pub fn with_mode<NewMode>(self, mode: NewMode) -> SHT31<NewMode, I2C> {
+    pub fn with_mode<NewMode: Send + Sync>(self, mode: NewMode) -> SHT31<NewMode, I2C> {
         SHT31 {
             mode,
             i2c: self.i2c,
@@ -596,6 +603,7 @@ mod test {
         assert_eq!(reading.temperature, 72);
     }
 
+    #[test]
     fn extras() {
         let expectations = [
             // Heater On

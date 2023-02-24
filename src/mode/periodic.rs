@@ -58,7 +58,7 @@ impl Periodic {
 
 impl<I2C> Sht31Reader for SHT31<Periodic, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: i2c::WriteRead + i2c::Write + Send + Sync,
 {
     fn read(&mut self) -> Result<Reading> {
         let mut buffer = [0; 6];
@@ -70,7 +70,7 @@ where
 
 impl<I2C> Sht31Measure for SHT31<Periodic, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: i2c::WriteRead + i2c::Write + Send + Sync,
 {
     /// Initialized the periodic measuring mode,
     /// a break command must be run in order to change
