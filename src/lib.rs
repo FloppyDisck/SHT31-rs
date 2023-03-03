@@ -307,9 +307,9 @@ where
             });
         }
 
-        Ok(Status::from_bytes(
-            i16::from_be_bytes([buffer[0], buffer[1]]) as u16,
-        ))
+        Ok(Status::from_bytes(u16::from_be_bytes([
+            buffer[0], buffer[1],
+        ])))
     }
 
     /// Clear all status registers
