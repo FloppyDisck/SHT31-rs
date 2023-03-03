@@ -148,10 +148,6 @@ impl Status {
     }
 }
 
-fn merge_bytes(a: u8, b: u8) -> u16 {
-    ((a as u16) << 8) | b as u16
-}
-
 fn calculate_checksum(crc: &Crc<u8>, msb: u8, lsb: u8) -> u8 {
     let mut digest = crc.digest();
     digest.update(&[msb, lsb]);
@@ -185,11 +181,6 @@ fn verify_reading(buffer: [u8; 6]) -> Result<()> {
 }
 
 impl<Mode: Send + Sync, I2C: Send + Sync> SHT31<Mode, I2C> {
-    /// Merges two bytes so the result is both, ex merge_bytes(0x20, 0x33) = 0x2033
-    fn merge_bytes(a: u8, b: u8) -> u16 {
-        merge_bytes(a, b)
-    }
-
     /// Verifies the two bytes against the returned checksum
     fn verify_data(buffer: [u8; 6]) -> Result<()> {
         verify_reading(buffer)
@@ -316,7 +307,9 @@ where
             });
         }
 
-        Ok(Status::from_bytes(merge_bytes(buffer[0], buffer[1])))
+        Ok(Status::from_bytes(
+            i16::from_be_bytes([buffer[0], buffer[1]]) as u16,
+        ))
     }
 
     /// Clear all status registers
@@ -342,9 +335,9 @@ where
         Self::verify_data(buffer)?;
 
         #[cfg(not(feature = "no-float"))]
-        let raw_temp = Self::merge_bytes(buffer[0], buffer[1]) as f32;
+        let raw_temp = i16::from_be_bytes([buffer[0], buffer[1]]) as f32;
         #[cfg(feature = "no-float")]
-        let raw_temp = Self::merge_bytes(buffer[0], buffer[1]) as i32;
+        let raw_temp = i16::from_be_bytes([buffer[0], buffer[1]]) as i32;
 
         let (sub, mul) = match self.unit {
             TemperatureUnit::Celsius => {
@@ -370,9 +363,9 @@ where
         let temperature = pre_sub - sub;
 
         #[cfg(not(feature = "no-float"))]
-        let raw_humidity = Self::merge_bytes(buffer[3], buffer[4]) as f32;
+        let raw_humidity = i16::from_be_bytes([buffer[3], buffer[4]]) as f32;
         #[cfg(feature = "no-float")]
-        let raw_humidity = Self::merge_bytes(buffer[3], buffer[4]) as i32;
+        let raw_humidity = i16::from_be_bytes([buffer[3], buffer[4]]) as i32;
         let humidity = sensor_math::HUNDRED * raw_humidity / sensor_math::CONVERSION_DENOM;
 
         Ok(Reading {
@@ -388,13 +381,6 @@ mod test {
     use crate::prelude::*;
     use embedded_hal_mock::i2c::{Mock, Transaction};
     use rstest::*;
-
-    #[test]
-    fn byte_merge() {
-        let a = 0x20;
-        let b = 0x33;
-        assert_eq!(merge_bytes(a, b), 0x2033);
-    }
 
     #[test]
     fn reading() {
