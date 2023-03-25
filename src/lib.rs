@@ -47,7 +47,6 @@ mod sensor_math {
 }
 
 /// The temperature and humidity sensor
-#[cfg_attr(feature = "robot-rs", derive(Component))]
 #[derive(Copy, Clone, Debug)]
 pub struct SHT31<Mode: 'static + Send + Sync, I2C: 'static + Send + Sync> {
     mode: Mode,
@@ -81,9 +80,12 @@ pub enum DeviceAddr {
     AD1 = 0x45,
 }
 
-impl Into<u8> for DeviceAddr {
-    fn into(self) -> u8 {
-        self as u8
+impl From<u8> for DeviceAddr {
+    fn from(value: u8) -> Self {
+        match value {
+            0x44 => DeviceAddr::AD0,
+            _ => DeviceAddr::AD1,
+        }
     }
 }
 
