@@ -1,19 +1,12 @@
 pub mod error;
 pub mod mode;
 
-#[cfg(feature = "robot-rs")]
-pub mod robot_interface;
-#[cfg(feature = "robot-rs")]
-use bevy_ecs::prelude::Component;
-
 use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
 use embedded_hal::blocking::i2c;
 
 pub use crate::error::{Result, SHTError};
 pub mod prelude {
-    #[cfg(feature = "robot-rs")]
-    pub use super::robot_interface::*;
     pub use super::{
         mode::{Periodic, Sht31Measure, Sht31Reader, SimpleSingleShot, SingleShot, MPS},
         Accuracy, DeviceAddr, Reading, Status, TemperatureUnit, SHT31,
@@ -363,9 +356,10 @@ where
         let temperature = pre_sub - sub;
 
         #[cfg(not(feature = "no-float"))]
-        let raw_humidity = i16::from_be_bytes([buffer[3], buffer[4]]) as f32;
+        let raw_humidity = u16::from_be_bytes([buffer[3], buffer[4]]) as f32;
         #[cfg(feature = "no-float")]
-        let raw_humidity = i16::from_be_bytes([buffer[3], buffer[4]]) as i32;
+        let raw_humidity = u16::from_be_bytes([buffer[3], buffer[4]]) as i32;
+
         let humidity = sensor_math::HUNDRED * raw_humidity / sensor_math::CONVERSION_DENOM;
 
         Ok(Reading {
