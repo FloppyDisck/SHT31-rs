@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature="thiserror"), no_std)]
+#![cfg_attr(not(feature = "thiserror"), no_std)]
 use core::prelude::v1::*;
 
 pub mod error;
@@ -6,7 +6,7 @@ pub mod mode;
 
 use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
-use embedded_hal::blocking::{i2c, delay::DelayMs};
+use embedded_hal::blocking::{delay::DelayMs, i2c};
 
 pub use crate::error::{Result, SHTError};
 pub mod prelude {
@@ -169,7 +169,7 @@ impl<Mode, I2C> SHT31<Mode, I2C> {
 impl<I2C, D> SHT31<SimpleSingleShot<D>, I2C>
 where
     I2C: i2c::WriteRead + i2c::Write,
-    D: DelayMs<u32>
+    D: DelayMs<u32>,
 {
     /// Create a new sensor
     /// I2C clock frequency must must be between 0 and 1000 kHz
@@ -321,12 +321,8 @@ where
         let raw_temp = Self::merge_bytes(buffer[0], buffer[1]) as f32;
 
         let (sub, mul) = match self.unit {
-            TemperatureUnit::Celsius => {
-                CELSIUS_PAIR
-            }
-            TemperatureUnit::Fahrenheit => {
-                FAHRENHEIT_PAIR
-            }
+            TemperatureUnit::Celsius => CELSIUS_PAIR,
+            TemperatureUnit::Fahrenheit => FAHRENHEIT_PAIR,
         };
 
         let pre_sub = mul * (raw_temp / CONVERSION_DENOM);
@@ -363,9 +359,7 @@ mod test {
         let corrupt_temperature = [98, 153, 180, 98, 32, 139];
 
         assert_eq!(
-            verify_reading(corrupt_temperature)
-                .err()
-                .unwrap(),
+            verify_reading(corrupt_temperature).err().unwrap(),
             SHTError::InvalidTemperatureChecksumError {
                 bytes_start: 98,
                 bytes_end: 153,

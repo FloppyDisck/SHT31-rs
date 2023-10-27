@@ -1,11 +1,10 @@
 pub type Result<T> = core::result::Result<T, SHTError>;
-
 #[cfg_attr(feature = "thiserror", derive(thiserror::Error))]
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum SHTError {
     #[cfg_attr(feature = "thiserror", error("Write Read I2C Error"))]
     WriteReadI2CError,
-    #[cfg_attr(feature = "thiserror", error("Write I2C Error")) ]
+    #[cfg_attr(feature = "thiserror", error("Write I2C Error"))]
     WriteI2CError,
     #[cfg_attr(feature = "thiserror", error("Humidity bytes [{bytes_start:#x}, {bytes_end:#x}] expected {expected_checksum:#x} but got the checksum {calculated_checksum:#x}"))]
     InvalidHumidityChecksumError {
