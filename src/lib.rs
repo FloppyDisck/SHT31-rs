@@ -399,12 +399,12 @@ mod test {
     #[test]
     fn status() {
         let status = Status::from_bytes(0x8010);
-        assert_eq!(status.pending_alert, true);
-        assert_eq!(status.heater_on, false);
-        assert_eq!(status.rh_alert, false);
-        assert_eq!(status.t_alert, false);
-        assert_eq!(status.system_reset, true);
-        assert_eq!(status.last_command_processed, true);
-        assert_eq!(status.checksum_failed, false);
+        assert!(status.pending_alert);
+        assert!(!status.heater_on);
+        assert!(!status.rh_alert);
+        assert!(!status.t_alert);
+        assert!(status.system_reset);
+        assert!(status.last_command_processed);
+        assert!(!status.checksum_failed);
     }
 }
