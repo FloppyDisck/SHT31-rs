@@ -322,24 +322,14 @@ where
 
         let (sub, mul) = match self.unit {
             TemperatureUnit::Celsius => {
-                // TODO: figure out why this is necessary
-                #[cfg(feature = "esp32-fix")]
-                println!();
                 CELSIUS_PAIR
             }
             TemperatureUnit::Fahrenheit => {
-                #[cfg(feature = "esp32-fix")]
-                println!();
                 FAHRENHEIT_PAIR
             }
         };
 
         let pre_sub = mul * (raw_temp / CONVERSION_DENOM);
-
-        // This needs to be printed, if not temperature = - temperature
-        // i swear to god im not making this up
-        #[cfg(feature = "esp32-fix")]
-        println!("{}", pre_sub);
 
         let temperature = pre_sub - sub;
 

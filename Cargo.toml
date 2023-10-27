@@ -10,7 +10,6 @@ keywords = ["embedded", "sensor", "temperature", "humidity"]
 categories = ["embedded"]
 
 [features]
-esp32-fix = []
 thiserror = ["dep:thiserror"]
 
 [dependencies]
