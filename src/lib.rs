@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature="thiserror"), no_std)]
 use core::prelude::v1::*;
 
 pub mod error;
