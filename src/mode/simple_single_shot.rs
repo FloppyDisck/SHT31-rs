@@ -3,28 +3,23 @@ use crate::{
     mode::{single_shot::single_shot_read, Sht31Reader},
     Accuracy, Reading, SHT31,
 };
-use embedded_hal::blocking::i2c;
-use std::{thread::sleep, time::Duration};
+use embedded_hal::blocking::{i2c, delay::DelayMs};
 
 /// A simple reading that blocks until the measurement is obtained
 #[derive(Copy, Clone, Debug)]
-pub struct SimpleSingleShot {
+pub struct SimpleSingleShot <D: DelayMs<u32>>{
     max_retries: u8,
-    ms_delay: u64,
+    ms_delay: u32,
+    delay: D
 }
 
-impl Default for SimpleSingleShot {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SimpleSingleShot {
+impl <D> SimpleSingleShot<D> where D: DelayMs<u32> {
     #[allow(dead_code)]
-    pub fn new() -> Self {
+    pub fn new(delay: D) -> Self {
         Self {
             max_retries: 8,
             ms_delay: 100,
+            delay
         }
     }
     /// Sets the max number of retries to read a sensor before giving up
@@ -37,19 +32,20 @@ impl SimpleSingleShot {
         self
     }
     /// Sets the millisecond delay between each try
-    pub fn set_delay(&mut self, ms_delay: u64) {
+    pub fn set_delay(&mut self, ms_delay: u32) {
         self.ms_delay = ms_delay
     }
     /// Sets the millisecond delay between each try
-    pub fn with_delay(mut self, ms_delay: u64) -> Self {
+    pub fn with_delay(mut self, ms_delay: u32) -> Self {
         self.set_delay(ms_delay);
         self
     }
 }
 
-impl<I2C> Sht31Reader for SHT31<SimpleSingleShot, I2C>
+impl<I2C, D> Sht31Reader for SHT31<SimpleSingleShot<D>, I2C>
 where
     I2C: i2c::WriteRead + i2c::Write,
+    D: DelayMs<u32>
 {
     /// It will initiate a read and wont stop until its either exhausted its retries or a reading is found
     fn read(&mut self) -> Result<Reading> {
@@ -69,7 +65,7 @@ where
             read_attempt = single_shot_read(self);
 
             if read_attempt.is_err() {
-                sleep(Duration::from_millis(self.mode.ms_delay))
+                self.mode.delay.delay_ms(self.mode.ms_delay);
             } else {
                 return read_attempt;
             }
