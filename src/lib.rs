@@ -1,9 +1,12 @@
+#![no_std]
+use core::prelude::v1::*;
+
 pub mod error;
 pub mod mode;
 
 use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
-use embedded_hal::blocking::i2c;
+use embedded_hal::blocking::{i2c, delay::DelayMs};
 
 pub use crate::error::{Result, SHTError};
 pub mod prelude {
@@ -163,15 +166,16 @@ impl<Mode, I2C> SHT31<Mode, I2C> {
 }
 
 #[allow(dead_code)]
-impl<I2C> SHT31<SimpleSingleShot, I2C>
+impl<I2C, D> SHT31<SimpleSingleShot<D>, I2C>
 where
     I2C: i2c::WriteRead + i2c::Write,
+    D: DelayMs<u32>
 {
     /// Create a new sensor
     /// I2C clock frequency must must be between 0 and 1000 kHz
-    pub fn new(i2c: I2C) -> Self {
+    pub fn new(i2c: I2C, delay: D) -> Self {
         Self {
-            mode: SimpleSingleShot::new(),
+            mode: SimpleSingleShot::new(delay),
             i2c,
             address: DeviceAddr::default() as u8,
             unit: TemperatureUnit::default(),
@@ -292,6 +296,11 @@ where
         self.i2c_write(&[0x30, 0x41])
     }
 
+    /// Consumes the instance and returns the i2c
+    pub fn destroy(self) -> I2C {
+        self.i2c
+    }
+
     fn i2c_write(&mut self, bytes: &[u8]) -> Result<()> {
         match self.i2c.write(self.address, bytes) {
             Ok(res) => Ok(res),
@@ -366,27 +375,24 @@ mod test {
         assert_eq!(
             verify_reading(corrupt_temperature)
                 .err()
-                .unwrap()
-                .to_string(),
+                .unwrap(),
             SHTError::InvalidTemperatureChecksumError {
                 bytes_start: 98,
                 bytes_end: 153,
                 expected_checksum: 180,
                 calculated_checksum: 188
             }
-            .to_string()
         );
 
         let corrupt_humidity = [98, 153, 188, 98, 32, 180];
         assert_eq!(
-            verify_reading(corrupt_humidity).err().unwrap().to_string(),
+            verify_reading(corrupt_humidity).err().unwrap(),
             SHTError::InvalidHumidityChecksumError {
                 bytes_start: 98,
                 bytes_end: 32,
                 expected_checksum: 180,
                 calculated_checksum: 139
             }
-            .to_string()
         );
     }
 
