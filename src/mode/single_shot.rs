@@ -3,7 +3,7 @@ use crate::{
     mode::{Sht31Measure, Sht31Reader},
     Accuracy, Reading, SHT31,
 };
-use embedded_hal::blocking::i2c;
+use embedded_hal::i2c::I2c;
 
 /// Complex read that may require multiple attempts to read output until its ready
 #[derive(Default, Copy, Clone, Debug)]
@@ -16,9 +16,7 @@ impl SingleShot {
     }
 }
 
-pub(crate) fn single_shot_read<Mode, I2C: i2c::WriteRead + i2c::Write>(
-    sensor: &mut SHT31<Mode, I2C>,
-) -> Result<Reading> {
+pub(crate) fn single_shot_read<Mode, I2C: I2c>(sensor: &mut SHT31<Mode, I2C>) -> Result<Reading> {
     // TODO: If error is a NACK then return another unique error to identify
     let mut buffer = [0; 6];
 
@@ -28,7 +26,7 @@ pub(crate) fn single_shot_read<Mode, I2C: i2c::WriteRead + i2c::Write>(
 
 impl<I2C> Sht31Reader for SHT31<SingleShot, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: I2c,
 {
     /// Try reading, if the reading is not available yet then it will return an error
     fn read(&mut self) -> Result<Reading> {
@@ -38,7 +36,7 @@ where
 
 impl<I2C> Sht31Measure for SHT31<SingleShot, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: I2c,
 {
     /// Commence measuring
     #[allow(dead_code)]

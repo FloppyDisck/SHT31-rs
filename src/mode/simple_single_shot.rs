@@ -3,11 +3,11 @@ use crate::{
     mode::{single_shot::single_shot_read, Sht31Reader},
     Accuracy, Reading, SHT31,
 };
-use embedded_hal::blocking::{delay::DelayMs, i2c};
+use embedded_hal::{delay::DelayNs, i2c::I2c};
 
 /// A simple reading that blocks until the measurement is obtained
 #[derive(Copy, Clone, Debug)]
-pub struct SimpleSingleShot<D: DelayMs<u32>> {
+pub struct SimpleSingleShot<D: DelayNs> {
     max_retries: u8,
     ms_delay: u32,
     delay: D,
@@ -15,7 +15,7 @@ pub struct SimpleSingleShot<D: DelayMs<u32>> {
 
 impl<D> SimpleSingleShot<D>
 where
-    D: DelayMs<u32>,
+    D: DelayNs,
 {
     #[allow(dead_code)]
     pub fn new(delay: D) -> Self {
@@ -47,8 +47,8 @@ where
 
 impl<I2C, D> Sht31Reader for SHT31<SimpleSingleShot<D>, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
-    D: DelayMs<u32>,
+    I2C: I2c,
+    D: DelayNs,
 {
     /// It will initiate a read and wont stop until its either exhausted its retries or a reading is found
     fn read(&mut self) -> Result<Reading> {

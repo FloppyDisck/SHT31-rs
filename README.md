@@ -16,7 +16,7 @@ the current thread until the sensor does a reading.
 use sht31::prelude::*;
 
 fn main() -> Result<()> {
-    // Requires an i2c connection + delay (both from embedded_hal::blocking)
+    // Requires an i2c connection + delay (both from embedded_hal 1.x.x)
     let sht = SHT31::new(i2c, delay);
     
     loop {

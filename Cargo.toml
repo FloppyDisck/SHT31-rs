@@ -13,7 +13,7 @@ categories = ["embedded"]
 thiserror = ["dep:thiserror"]
 
 [dependencies]
-embedded-hal            = "0.2.7"
+embedded-hal = "1.0.0"
 
 crc = "3.0.0"
-thiserror = {version= "1.0.38", optional = true}
+thiserror = { version = "1.0.38", optional = true }
