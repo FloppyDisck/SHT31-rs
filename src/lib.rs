@@ -6,7 +6,7 @@ pub mod mode;
 
 use crate::mode::SimpleSingleShot;
 use crc::{Algorithm, Crc};
-use embedded_hal::blocking::{delay::DelayMs, i2c};
+use embedded_hal::{delay::DelayNs, i2c::I2c};
 
 pub use crate::error::{Result, SHTError};
 pub mod prelude {
@@ -168,8 +168,8 @@ impl<Mode, I2C> SHT31<Mode, I2C> {
 #[allow(dead_code)]
 impl<I2C, D> SHT31<SimpleSingleShot<D>, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
-    D: DelayMs<u32>,
+    I2C: I2c,
+    D: DelayNs,
 {
     /// Create a new sensor
     /// I2C clock frequency must must be between 0 and 1000 kHz
@@ -188,7 +188,7 @@ where
 #[allow(dead_code)]
 impl<Mode, I2C> SHT31<Mode, I2C>
 where
-    I2C: i2c::WriteRead + i2c::Write,
+    I2C: I2c,
 {
     /// Changes the SHT31 mode
     pub fn with_mode<NewMode>(self, mode: NewMode) -> SHT31<NewMode, I2C> {
