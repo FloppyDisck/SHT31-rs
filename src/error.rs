@@ -2,6 +2,8 @@ pub type Result<T> = core::result::Result<T, SHTError>;
 #[cfg_attr(feature = "thiserror", derive(thiserror::Error))]
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum SHTError {
+    #[cfg_attr(feature = "thiserror", error("Read I2C Error"))]
+    ReadI2CError,
     #[cfg_attr(feature = "thiserror", error("Write Read I2C Error"))]
     WriteReadI2CError,
     #[cfg_attr(feature = "thiserror", error("Write I2C Error"))]

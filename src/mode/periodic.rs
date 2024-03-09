@@ -60,7 +60,7 @@ where
     fn read(&mut self) -> Result<Reading> {
         let mut buffer = [0; 6];
 
-        self.i2c_read(&[0xE0, 0x00], &mut buffer)?;
+        self.i2c_write_read(&[0xE0, 0x00], &mut buffer)?;
         self.process_data(buffer)
     }
 }
