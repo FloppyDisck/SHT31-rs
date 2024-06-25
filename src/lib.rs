@@ -1,10 +1,11 @@
-#![cfg_attr(not(feature = "thiserror"), no_std)]
-use core::prelude::v1::*;
+#![no_std]
+
+extern crate alloc;
 
 pub mod error;
 pub mod mode;
 
-use crate::mode::SimpleSingleShot;
+use crate::mode::{Periodic, SimpleSingleShot, SingleShot};
 use crc::{Algorithm, Crc};
 use embedded_hal::{delay::DelayNs, i2c::I2c};
 
@@ -117,10 +118,6 @@ impl Status {
     }
 }
 
-fn merge_bytes(a: u8, b: u8) -> u16 {
-    ((a as u16) << 8) | b as u16
-}
-
 fn calculate_checksum(crc: &Crc<u8>, msb: u8, lsb: u8) -> u8 {
     let mut digest = crc.digest();
     digest.update(&[msb, lsb]);
@@ -154,18 +151,12 @@ fn verify_reading(buffer: [u8; 6]) -> Result<()> {
 }
 
 impl<Mode, I2C> SHT31<Mode, I2C> {
-    /// Merges two bytes so the result is both, ex merge_bytes(0x20, 0x33) = 0x2033
-    fn merge_bytes(a: u8, b: u8) -> u16 {
-        merge_bytes(a, b)
-    }
-
     /// Verifies the two bytes against the returned checksum
     fn verify_data(buffer: [u8; 6]) -> Result<()> {
         verify_reading(buffer)
     }
 }
 
-#[allow(dead_code)]
 impl<I2C, D> SHT31<SimpleSingleShot<D>, I2C>
 where
     I2C: I2c,
@@ -174,8 +165,44 @@ where
     /// Create a new sensor
     /// I2C clock frequency must must be between 0 and 1000 kHz
     pub fn new(i2c: I2C, delay: D) -> Self {
+        Self::simple_single_shot(i2c, SimpleSingleShot::new(delay))
+    }
+
+    pub fn simple_single_shot(i2c: I2C, mode: SimpleSingleShot<D>) -> Self {
         Self {
-            mode: SimpleSingleShot::new(delay),
+            mode,
+            i2c,
+            address: DeviceAddr::default() as u8,
+            unit: TemperatureUnit::default(),
+            accuracy: Accuracy::default(),
+            heater: false,
+        }
+    }
+}
+
+impl<I2C> SHT31<Periodic, I2C>
+where
+    I2C: I2c,
+{
+    pub fn periodic(i2c: I2C, mode: Periodic) -> SHT31<Periodic, I2C> {
+        Self {
+            mode,
+            i2c,
+            address: DeviceAddr::default() as u8,
+            unit: TemperatureUnit::default(),
+            accuracy: Accuracy::default(),
+            heater: false,
+        }
+    }
+}
+
+impl<I2C> SHT31<SingleShot, I2C>
+where
+    I2C: I2c,
+{
+    pub fn single_shot(i2c: I2C, mode: SingleShot) -> SHT31<SingleShot, I2C> {
+        Self {
+            mode,
             i2c,
             address: DeviceAddr::default() as u8,
             unit: TemperatureUnit::default(),
@@ -288,7 +315,9 @@ where
             });
         }
 
-        Ok(Status::from_bytes(merge_bytes(buffer[0], buffer[1])))
+        Ok(Status::from_bytes(u16::from_be_bytes([
+            buffer[0], buffer[1],
+        ])))
     }
 
     /// Clear all status registers
@@ -325,7 +354,7 @@ where
     fn process_data(&self, buffer: [u8; 6]) -> Result<Reading> {
         Self::verify_data(buffer)?;
 
-        let raw_temp = Self::merge_bytes(buffer[0], buffer[1]) as f32;
+        let raw_temp = i16::from_be_bytes([buffer[0], buffer[1]]) as f32;
 
         let (sub, mul) = match self.unit {
             TemperatureUnit::Celsius => CELSIUS_PAIR,
@@ -336,7 +365,7 @@ where
 
         let temperature = pre_sub - sub;
 
-        let raw_humidity = Self::merge_bytes(buffer[3], buffer[4]) as f32;
+        let raw_humidity = i16::from_be_bytes([buffer[0], buffer[1]]) as f32;
         let humidity = 100f32 * raw_humidity / CONVERSION_DENOM;
 
         Ok(Reading {
@@ -349,12 +378,31 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::prelude::*;
+    use alloc::vec;
+    use alloc::vec::Vec;
+    use embedded_hal_mock::common::Generic;
+    use embedded_hal_mock::eh1::delay::CheckedDelay;
+    use embedded_hal_mock::eh1::i2c::{Mock, Transaction};
+    use rstest::rstest;
 
-    #[test]
-    fn byte_merge() {
-        let a = 0x20;
-        let b = 0x33;
-        assert_eq!(merge_bytes(a, b), 0x2033);
+    impl SHT31<SingleShot, Generic<Transaction>> {
+        fn done(mut self) {
+            self.i2c.done()
+        }
+    }
+
+    impl SHT31<Periodic, Generic<Transaction>> {
+        fn done(mut self) {
+            self.i2c.done()
+        }
+    }
+
+    impl SHT31<SimpleSingleShot<CheckedDelay>, Generic<Transaction>> {
+        fn done(mut self) {
+            self.i2c.done();
+            self.mode.delay.done();
+        }
     }
 
     #[test]
@@ -397,5 +445,134 @@ mod test {
         assert!(status.system_reset);
         assert!(status.last_command_processed);
         assert!(!status.checksum_failed);
+    }
+
+    fn single_shot_expectations(msb: u8, lsb: u8) -> [Transaction; 2] {
+        [
+            Transaction::write(DeviceAddr::AD0 as u8, Vec::from(&[msb, lsb])),
+            Transaction::read(
+                DeviceAddr::AD0 as u8,
+                Vec::from(&[98, 153, 188, 98, 32, 139]),
+            ),
+        ]
+    }
+
+    #[rstest]
+    #[case(0x10, Accuracy::Low)]
+    #[case(0x0D, Accuracy::Medium)]
+    #[case(0x06, Accuracy::High)]
+    fn simple_single_shot(#[case] lsb: u8, #[case] accuracy: Accuracy) {
+        let i2c = Mock::new(&single_shot_expectations(0x2C, lsb));
+
+        let mut sht31 = SHT31::new(i2c, CheckedDelay::new([])).with_accuracy(accuracy);
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38.515297);
+        assert_eq!(reading.temperature, 72.32318);
+
+        sht31.done();
+    }
+
+    #[rstest]
+    #[case(0x16, Accuracy::Low)]
+    #[case(0x0B, Accuracy::Medium)]
+    #[case(0x00, Accuracy::High)]
+    fn single_shot(#[case] lsb: u8, #[case] accuracy: Accuracy) {
+        let i2c = Mock::new(&single_shot_expectations(0x24, lsb));
+
+        let mut sht31 = SHT31::single_shot(i2c, SingleShot::new()).with_accuracy(accuracy);
+        sht31.measure().unwrap();
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38.515297);
+        assert_eq!(reading.temperature, 72.32318);
+
+        sht31.done()
+    }
+
+    #[rstest]
+    #[case(0x20, 0x32, false, Accuracy::High, MPS::Half)]
+    #[case(0x20, 0x24, false, Accuracy::Medium, MPS::Half)]
+    #[case(0x20, 0x2F, false, Accuracy::Low, MPS::Half)]
+    #[case(0x21, 0x30, false, Accuracy::High, MPS::Normal)]
+    #[case(0x21, 0x26, false, Accuracy::Medium, MPS::Normal)]
+    #[case(0x21, 0x2D, false, Accuracy::Low, MPS::Normal)]
+    #[case(0x22, 0x36, false, Accuracy::High, MPS::Double)]
+    #[case(0x22, 0x20, false, Accuracy::Medium, MPS::Double)]
+    #[case(0x22, 0x2B, false, Accuracy::Low, MPS::Double)]
+    #[case(0x23, 0x34, false, Accuracy::High, MPS::X4)]
+    #[case(0x23, 0x22, false, Accuracy::Medium, MPS::X4)]
+    #[case(0x23, 0x29, false, Accuracy::Low, MPS::X4)]
+    #[case(0x27, 0x37, false, Accuracy::High, MPS::X10)]
+    #[case(0x27, 0x21, false, Accuracy::Medium, MPS::X10)]
+    #[case(0x27, 0x2A, false, Accuracy::Low, MPS::X10)]
+    #[case(0x2B, 0x32, true, Accuracy::Low, MPS::Half)]
+    fn periodic(
+        #[case] msb: u8,
+        #[case] lsb: u8,
+        #[case] art: bool,
+        #[case] accuracy: Accuracy,
+        #[case] mps: MPS,
+    ) {
+        let expectations = [
+            Transaction::write(DeviceAddr::AD0 as u8, vec![msb, lsb]),
+            Transaction::write_read(
+                DeviceAddr::AD0 as u8,
+                vec![0xE0, 0x00],
+                vec![98, 153, 188, 98, 32, 139],
+            ),
+        ];
+        let i2c = Mock::new(&expectations);
+
+        let mut periodic = Periodic::new().with_mps(mps);
+        if art {
+            periodic.set_art();
+        }
+
+        let mut sht31 = SHT31::periodic(i2c, periodic).with_accuracy(accuracy);
+        sht31.measure().unwrap();
+        let reading = sht31.read().unwrap();
+        assert_eq!(reading.humidity, 38.515297);
+        assert_eq!(reading.temperature, 72.32318);
+
+        sht31.done();
+    }
+
+    fn extras() {
+        let expectations = [
+            // Heater On
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x6D]),
+            // Heater Off
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x66]),
+            // Break
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x93]),
+            // Soft reset
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0xA2]),
+            // Reset
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x00, 0x06]),
+            // Reset Status
+            Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x41]),
+            // Status
+            Transaction::write_read(
+                DeviceAddr::AD0 as u8,
+                vec![0xF3, 0x2D],
+                vec![98, 153, 188, 98, 32, 139],
+            ),
+        ];
+        let i2c = Mock::new(&expectations);
+
+        // Heating
+        let mut sht31 = SHT31::new(i2c, CheckedDelay::new([]))
+            .with_heating()
+            .unwrap();
+        sht31.set_heating(false).unwrap();
+
+        // Break
+        sht31.break_command().unwrap();
+
+        // Resets
+        sht31.soft_reset().unwrap();
+        sht31.reset().unwrap();
+
+        // Status
+        sht31.clear_status().unwrap();
     }
 }
