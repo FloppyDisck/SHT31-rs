@@ -10,7 +10,7 @@ use embedded_hal::{delay::DelayNs, i2c::I2c};
 pub struct SimpleSingleShot<D: DelayNs> {
     max_retries: u8,
     ms_delay: u32,
-    delay: D,
+    pub(crate) delay: D,
 }
 
 impl<D> SimpleSingleShot<D>
