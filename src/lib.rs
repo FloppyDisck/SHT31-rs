@@ -536,7 +536,8 @@ mod test {
         sht31.done();
     }
 
-    fn extras() {
+    #[test]
+    fn common_interactions() {
         let expectations = [
             // Heater On
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x6D]),
@@ -550,12 +551,6 @@ mod test {
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x00, 0x06]),
             // Reset Status
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x41]),
-            // Status
-            Transaction::write_read(
-                DeviceAddr::AD0 as u8,
-                vec![0xF3, 0x2D],
-                vec![98, 153, 188, 98, 32, 139],
-            ),
         ];
         let i2c = Mock::new(&expectations);
 
@@ -574,5 +569,7 @@ mod test {
 
         // Status
         sht31.clear_status().unwrap();
+
+        sht31.done();
     }
 }
