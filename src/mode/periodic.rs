@@ -47,8 +47,13 @@ impl Periodic {
     }
 
     /// Enables accelerated response time, evaluates data at a frequency of 4 Hz
-    pub fn with_art(mut self) -> Self {
+    pub fn set_art(&mut self) {
         self.art = true;
+    }
+
+    /// Enables accelerated response time, evaluates data at a frequency of 4 Hz
+    pub fn with_art(mut self) -> Self {
+        self.set_art();
         self
     }
 }
