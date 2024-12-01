@@ -376,10 +376,10 @@ where
 #[cfg(test)]
 mod test {
     extern crate alloc;
-    use alloc::vec;
-    use alloc::vec::Vec;
     use super::*;
     use crate::prelude::*;
+    use alloc::vec;
+    use alloc::vec::Vec;
     use embedded_hal_mock::common::Generic;
     use embedded_hal_mock::eh1::delay::CheckedDelay;
     use embedded_hal_mock::eh1::i2c::{Mock, Transaction};
