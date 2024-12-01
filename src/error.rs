@@ -1,4 +1,4 @@
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 pub type Result<T> = core::result::Result<T, SHTError>;
 #[derive(Error, Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]

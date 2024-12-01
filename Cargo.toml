@@ -12,7 +12,7 @@ categories = ["embedded"]
 [dependencies]
 embedded-hal = "1.0.0"
 crc = "3.0.0"
-thiserror-no-std = "2.0.2"
+thiserror = { version = "2.0.3", default-features = false }
 
 [dev-dependencies]
 embedded-hal-mock = "0.11.1"

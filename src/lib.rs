@@ -1,7 +1,5 @@
 #![no_std]
 
-extern crate alloc;
-
 pub mod error;
 pub mod mode;
 
@@ -377,10 +375,11 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::prelude::*;
+    extern crate alloc;
     use alloc::vec;
     use alloc::vec::Vec;
+    use super::*;
+    use crate::prelude::*;
     use embedded_hal_mock::common::Generic;
     use embedded_hal_mock::eh1::delay::CheckedDelay;
     use embedded_hal_mock::eh1::i2c::{Mock, Transaction};
