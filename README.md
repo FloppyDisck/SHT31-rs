@@ -39,8 +39,7 @@ fn main() -> Result<()> {
     
     // Use single shot, with high accuracy, an alternate I2C address 
     // and return temp data in Fahrenheit
-    let sht = SHT31::new(i2c)
-        .with_mode(SingleShot::new())
+    let sht = SHT31::single_shot(i2c, SingleShot::new())
         .with_accuracy(Accuracy::High)
         .with_unit(TemperatureUnit::Fahrenheit)
         .with_address(DeviceAddr::AD1);
@@ -73,8 +72,10 @@ fn main() -> Result<()> {
     
     // In periodic mode, the sensor keeps updating the reading
     // without needing to measure
-    let mut sht = SHT31::new(sht_i2c)
-        .with_mode(Periodic::new().with_mps(MPS::Normal))
+    let mut sht = SHT31::periodic(
+        i2c, 
+        Periodic::new().with_mps(MPS::Normal)
+    )
         .with_accuracy(Accuracy::High);
     
     // Trigger the measure before running your loop to initialize the periodic mode
@@ -96,8 +97,7 @@ use sht31::prelude::*;
 fn main() -> Result<()> {
     
     // Makes the sensor acquire the data at 4 Hz
-    let mut sht = SHT31::new(sht_i2c)
-        .with_mode(Periodic::new().with_art());
+    let mut sht = SHT31::periodic(i2c, Periodic::new().with_art());
     sht.measure()?;
     
     loop {
@@ -117,8 +117,7 @@ use sht31::prelude::*;
 fn main() -> Result<()> {
     // i2c setup
     
-    let mut sht = SHT31::new(sht_i2c)
-        .with_mode(Periodic::new());
+    let mut sht = SHT31::periodic(i2c, Periodic::new());
     
     // Trigger the measure before running your loop to initialize the periodic mode
     sht.measure()?;
