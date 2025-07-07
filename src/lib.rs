@@ -363,7 +363,7 @@ where
 
         let temperature = pre_sub - sub;
 
-        let raw_humidity = i16::from_be_bytes([buffer[3], buffer[4]]) as f32;
+        let raw_humidity = u16::from_be_bytes([buffer[3], buffer[4]]) as f32;
         let humidity = 100f32 * raw_humidity / CONVERSION_DENOM;
 
         Ok(Reading {
