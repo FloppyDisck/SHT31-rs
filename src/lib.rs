@@ -363,7 +363,7 @@ where
 
         let temperature = pre_sub - sub;
 
-        let raw_humidity = i16::from_be_bytes([buffer[0], buffer[1]]) as f32;
+        let raw_humidity = u16::from_be_bytes([buffer[3], buffer[4]]) as f32;
         let humidity = 100f32 * raw_humidity / CONVERSION_DENOM;
 
         Ok(Reading {
@@ -465,7 +465,7 @@ mod test {
 
         let mut sht31 = SHT31::new(i2c, CheckedDelay::new([])).with_accuracy(accuracy);
         let reading = sht31.read().unwrap();
-        assert_eq!(reading.humidity, 38.515297);
+        assert_eq!(reading.humidity, 38.33066);
         assert_eq!(reading.temperature, 72.32318);
 
         sht31.done();
@@ -481,7 +481,7 @@ mod test {
         let mut sht31 = SHT31::single_shot(i2c, SingleShot::new()).with_accuracy(accuracy);
         sht31.measure().unwrap();
         let reading = sht31.read().unwrap();
-        assert_eq!(reading.humidity, 38.515297);
+        assert_eq!(reading.humidity, 38.33066);
         assert_eq!(reading.temperature, 72.32318);
 
         sht31.done()
@@ -529,7 +529,7 @@ mod test {
         let mut sht31 = SHT31::periodic(i2c, periodic).with_accuracy(accuracy);
         sht31.measure().unwrap();
         let reading = sht31.read().unwrap();
-        assert_eq!(reading.humidity, 38.515297);
+        assert_eq!(reading.humidity, 38.33066);
         assert_eq!(reading.temperature, 72.32318);
 
         sht31.done();
