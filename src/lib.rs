@@ -293,7 +293,9 @@ where
     /// Triggers an I2C general reset, keep in mind that this will reset all
     /// I2C devices connected to this line
     pub fn reset(&mut self) -> Result<()> {
-        self.i2c_write(&[0x00, 0x06])
+        self.i2c
+            .write(0x00, &[0x06])
+            .map_err(|_| SHTError::WriteI2CError)
     }
 
     /// Read the sensors status
@@ -547,7 +549,7 @@ mod test {
             // Soft reset
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0xA2]),
             // Reset
-            Transaction::write(DeviceAddr::AD0 as u8, vec![0x00, 0x06]),
+            Transaction::write(0x00, vec![0x06]),
             // Reset Status
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x41]),
         ];
