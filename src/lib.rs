@@ -352,7 +352,7 @@ where
     fn process_data(&self, buffer: [u8; 6]) -> Result<Reading> {
         Self::verify_data(buffer)?;
 
-        let raw_temp = i16::from_be_bytes([buffer[0], buffer[1]]) as f32;
+        let raw_temp = u16::from_be_bytes([buffer[0], buffer[1]]) as f32;
 
         let (sub, mul) = match self.unit {
             TemperatureUnit::Celsius => CELSIUS_PAIR,
