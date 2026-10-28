@@ -293,7 +293,9 @@ where
     /// Triggers an I2C general reset, keep in mind that this will reset all
     /// I2C devices connected to this line
     pub fn reset(&mut self) -> Result<()> {
-        self.i2c_write(&[0x00, 0x06])
+        self.i2c
+            .write(0x00, &[0x06])
+            .map_err(|_| SHTError::WriteI2CError)
     }
 
     /// Read the sensors status
@@ -352,7 +354,7 @@ where
     fn process_data(&self, buffer: [u8; 6]) -> Result<Reading> {
         Self::verify_data(buffer)?;
 
-        let raw_temp = i16::from_be_bytes([buffer[0], buffer[1]]) as f32;
+        let raw_temp = u16::from_be_bytes([buffer[0], buffer[1]]) as f32;
 
         let (sub, mul) = match self.unit {
             TemperatureUnit::Celsius => CELSIUS_PAIR,
@@ -547,7 +549,7 @@ mod test {
             // Soft reset
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0xA2]),
             // Reset
-            Transaction::write(DeviceAddr::AD0 as u8, vec![0x00, 0x06]),
+            Transaction::write(0x00, vec![0x06]),
             // Reset Status
             Transaction::write(DeviceAddr::AD0 as u8, vec![0x30, 0x41]),
         ];
